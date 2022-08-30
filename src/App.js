@@ -1,4 +1,3 @@
-import logo from './logo.svg';
 import './App.css';
 import styled, {keyframes} from 'styled-components'
 import {useState, useEffect} from 'react'
@@ -22,7 +21,8 @@ function App() {
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   const bottomObstacleHeight = CANVAS_HEIGHT - OBSTACLE_GAP - obstacleHeight
-
+  const [defaultSound] = useState(new Audio('sounds/default.mp3'))
+  const [hitSound] = useState(new Audio('sounds/hit.mp3'))
 
   useEffect(() => {
     let timeId;
@@ -46,7 +46,7 @@ function App() {
     }else {
         setObstacleLeft(CANVAS_WIDTH - OBSTACLE_WIDTH)
         setObstacleHeight(obstacleHeight)
-        counter = (obstacleLeft >= -OBSTACLE_WIDTH) ? 0 : score + 1
+        counter = (obstacleLeft >= -OBSTACLE_WIDTH) ? score : score + 1
         setScore(counter)
     }
   }, [gameHasStarted, obstacleLeft])
@@ -56,9 +56,9 @@ function App() {
     const hasCollidedWithBottomObstacle = birdPosition < CANVAS_HEIGHT
         && birdPosition >= CANVAS_HEIGHT - bottomObstacleHeight
     if(obstacleLeft >= 0 && obstacleLeft <= OBSTACLE_WIDTH && (hasCollidedWithTopObstacle || hasCollidedWithBottomObstacle)) {
+        hitSound.play()
         setGameOver(true)
         setGameHasStarted(false)
-        setScore(0)
     }
   })
 
@@ -68,7 +68,7 @@ function App() {
       if(!gameHasStarted) {
           setGameHasStarted(true)
       }
-      else if(newBirdPosition < BIRD_HEIGHT){
+      else if(newBirdPosition < 0) {
           setBirdPosition(BIRD_HEIGHT)
       }
       else{
@@ -83,11 +83,30 @@ function App() {
       }
   }, [window.event])
 
+  useEffect(() => {
+          if (typeof defaultSound.loop == 'boolean')
+          {
+              defaultSound.loop = true;
+          } else {
+              defaultSound.addEventListener('ended', function() {
+                  this.currentTime = 0;
+                  this.play();
+              }, false);
+          }
+          defaultSound.play()
+  }, [gameHasStarted])
+
+   useEffect(() => {
+       !gameOver ? defaultSound.play() : defaultSound.pause()
+       !gameOver && setScore(0)
+   }, [gameOver])
+
   return (
     <div className="App">
-        <Canvas height={CANVAS_HEIGHT} width={CANVAS_WIDTH} onClick={gameHasStarted && handleClick}>
+        <Canvas height={CANVAS_HEIGHT} width={CANVAS_WIDTH} onClick={gameHasStarted ? handleClick : null}>
             {!gameHasStarted && <StartScreen height={CANVAS_HEIGHT} width={CANVAS_WIDTH}>
-                <StartButton height={BUTTON_HEIGHT} width={BUTTON_WIDTH} onClick={() => {setGameHasStarted(true); setGameOver(false)}}></StartButton>
+                <StartButton height={BUTTON_HEIGHT} width={BUTTON_WIDTH} onClick={() => {setGameHasStarted(true);
+                    setGameOver(false)}}></StartButton>
             </StartScreen>}
             <TopObstacle top={0} width={OBSTACLE_WIDTH} height={obstacleHeight} left={obstacleLeft} />
             <Bird height={BIRD_HEIGHT} width={BIRD_WIDTH} positionTop={birdPosition} />
@@ -124,7 +143,7 @@ const StartButton = styled.div`
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-image: url("playButton.png");
+    background-image: url("images/playButton.png");
     width: ${(props) => props.width}px;
     height: ${(props) => props.height}px;
     background-position: center;
@@ -139,14 +158,14 @@ const Bird = styled.div`
       width: ${(props) => props.width}px;
       top: ${(props) => props.positionTop}px;
       border-radius: 50%;
-      background: url('/animated.gif');
+      background: url('images/animated.gif');
       background-size: 100% 100%;
 `
 
 const Canvas = styled.div`
     width: ${(props) => props.width}px;
     height: ${(props) => props.height}px;
-    background: url('/background.png');
+    background: url('images/background.png');
     background-size: 100% 100%;
     position: fixed;
     top: 0;
@@ -156,11 +175,10 @@ const Canvas = styled.div`
     overflow: hidden;
 `
 
-
 const TopObstacle = styled.div`
     position: relative;
     top: ${(props) => props.top}px;
-    background: url("/box.png");
+    background: url("images/box.png");
     background-size: 100%;
     width: ${(props) => props.width}px;
     height: ${props => props.height}px;
@@ -173,7 +191,7 @@ const BottomObstacle = styled(TopObstacle)`
     position: relative;
       &:before {
         content: "";
-        background-image: url("/grass.png");
+        background-image: url("images/grass.png");
         background-size: 100%;
         position: absolute;
         bottom: 0;
@@ -186,7 +204,7 @@ const BottomObstacle = styled(TopObstacle)`
 const ScoreBox = styled.div`
     width: 100px;
     height: 140px;
-    background-image: url("/score.png");
+    background-image: url("images/score.png");
     border-radius: 10px;
     background-size: cover;
     background-position: center;
@@ -223,7 +241,7 @@ const growDown = keyframes`
 const GameOver = styled.div`
       width: 200px;
       height: 100px;
-      background-image: url('/gameOver.png');
+      background-image: url('images/gameOver.png');
       background-position: center;
       background-size: cover;
       position: absolute;
